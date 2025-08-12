@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>H2 2025 - Humanities App</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#0b63d6; --muted:#9aa7bf; --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter,Arial,sans-serif; background: linear-gradient(180deg,#071025 0%, #0b1220 100%); color:#e6eef8;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .app{
+      max-width:1000px; margin:18px auto; padding:18px;
+    }
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{margin:0;font-size:20px}
+    .tag{font-size:12px;color:var(--muted)}
+    .topbar{display:flex;gap:8px;align-items:center}
+    .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+    .card{background:var(--card);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .subject-title{font-weight:700;font-size:16px}
+    .small{font-size:13px;color:var(--muted)}
+    nav{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border-radius:8px;background:var(--glass);cursor:pointer;font-size:14px;color:var(--muted)}
+    .tab.active{background:linear-gradient(90deg,#072b57,#0b63d6); color:#fff}
+    .panel{margin-top:16px}
+    .chapter{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03); margin-bottom:10px}
+    .chapter .meta{display:flex;justify-content:space-between;align-items:center}
+    .summary{margin-top:8px;color:#dbe9ff88}
+    .toggle{display:inline-flex;gap:6px;align-items:center}
+    .quiz-question{margin-top:12px;padding:10px;border-radius:8px;background:#081226;border:1px solid rgba(255,255,255,0.02)}
+    .option{margin-top:6px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .option.selected{outline:2px solid #0b63d6}
+    .result{margin-top:12px;padding:10px;border-radius:8px;background:#061522}
+    .progressbar{height:12px;background:#062033;border-radius:8px;overflow:hidden}
+    .progressbar > i{display:block;height:100%;background:linear-gradient(90deg,#0b63d6,#4aa3ff)}
+    input[type="text"], textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#071320;color:#eaf5ff}
+    footer{margin-top:26px;color:var(--muted);font-size:13px;text-align:center}
+    .small-muted{font-size:12px;color:var(--muted)}
+    /* responsive */
+    @media (max-width:600px){
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>H2 2025</h1>
+        <div class="tag">Humanities support — Learn in English, Explain in Malayalam</div>
+      </div>
+      <div class="topbar">
+        <div class="small-muted">Language:</div>
+        <div class="toggle">
+          <label style="font-size:13px"><input type="radio" name="lang" value="en" checked> English UI</label>
+          <label style="font-size:13px;margin-left:8px"><input type="radio" name="lang" value="ml"> Malayalam UI</label>
+        </div>
+        <button class="btn ghost" id="exportBtn">Export Data</button>
+        <button class="btn" id="resetBtn">Reset Progress</button>
+      </div>
+    </header>
+
+    <nav id="mainTabs">
+      <div class="tab active" data-tab="home">Home</div>
+      <div class="tab" data-tab="study">Study</div>
+      <div class="tab" data-tab="plan">Study Plan</div>
+      <div class="tab" data-tab="progress">Progress</div>
+      <div class="tab" data-tab="doubt">Doubt</div>
+    </nav>
+
+    <div class="panel" id="panelRoot">
+      <!-- Home content -->
+      <div id="homeView">
+        <h3>Subjects</h3>
+        <div class="grid" id="subjectsGrid"></div>
+      </div>
+
+      <!-- Study view -->
+      <div id="studyView" style="display:none">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <select id="subjectSelect" style="padding:8px;border-radius:8px;background:#071320;border:1px solid rgba(255,255,255,0.03);color:#eaf5ff">
+            <option value="">-- Select Subject --</option>
+          </select>
+          <div class="small-muted">Search chapter:</div>
+          <input type="text" id="searchChapter" placeholder="Type chapter title..." style="max-width:320px">
+          <button class="btn" id="loadChapters">Load</button>
+        </div>
+        <div id="chaptersList" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Study Plan -->
+      <div id="planView" style="display:none">
+        <h3>Study Plan (2 weeks sample)</h3>
+        <div id="planList"></div>
+        <div style="margin-top:12px">
+          <input type="text" id="planTask" placeholder="New task (e.g., Malayalam - Chapter 1)" />
+          <button class="btn" id="addPlan">Add</button>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="progressView" style="display:none">
+        <h3>Your Progress</h3>
+        <div id="progressBlocks"></div>
+      </div>
+
+      <!-- Doubt -->
+      <div id="doubtView" style="display:none">
+        <h3>Doubt / Ask Question</h3>
+        <div class="small-muted">Submit your doubt. It saves locally and you can review later.</div>
+        <div style="margin-top:10px">
+          <input id="doubtName" placeholder="Your name (optional)" />
+          <textarea id="doubtText" rows="3" placeholder="Type your doubt..." style="margin-top:8px"></textarea>
+          <button class="btn" id="submitDoubt">Submit Doubt</button>
+        </div>
+        <div style="margin-top:14px">
+          <h4>Submitted Doubts</h4>
+          <div id="doubtList"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>H2 2025 — Offline Study App • Built for quick start • Data stored locally</footer>
+  </div>
+
+  <script>
+    /***************
+     * DATA: subjects, chapters, questions (sample fill)
+     * You can edit this block to add more chapters/questions
+     ***************/
+    const APP_KEY = 'h2_2025_userdata_v1';
+
+    const DATA = {
+      subjects: [
+        { id: 'mal', name_en: 'Malayalam', name_ml: 'മലയാളം' },
+        { id: 'eng', name_en: 'English', name_ml: 'ഇംഗ്ലീഷ്' },
+        { id: 'hist', name_en: 'History', name_ml: 'ഇതിഹാസം' },
+        { id: 'pol', name_en: 'Politics', name_ml: 'രാഷ്ട്രീയം' },
+        { id: 'soc', name_en: 'Sociology', name_ml: 'സോഷ്യോളജി' },
+      ],
+      chapters: [
+        // Malayalam (3 chapters)
+        {
+          id:'mal-1', subject:'mal', title_en:'Ezhuthakam - Basics', title_ml:'എഴുത്തകം - അടിസ്ഥാനങ്ങൾ',
+          sum_en:'Alphabets, sandhi, vibhakti, and simple composition tips.',
+          sum_ml:'അക്ഷരങ്ങൾ, സന്ധി, വിവാക്തി, ലഘു രചനാ ഉപദേശങ്ങൾ.',
+          questions:[
+            {id:'m1-q1', text:'Which is a sandhi example?', options:['പൂ + അം = പൂരം','മൺ + ഇൽ = മണ്ണിൽ','കവി + ഉൾ = കവിയുടെ'], correct:1,
+             expl_en:'മൺ + ഇൽ -> മണ്ണിൽ is sandhi (joining and change).', expl_ml:'മൺ + ഇൽ → മണ്ണിൽ. വാക്കുകൾ ചേർന്നപ്പോൾ ഉണ്ടാവുന്ന മാറ്റം—സന്ധി.'},
+            {id:'m1-q2', text:'What is vibhakti about?', options:['Tense','Case/inflection','Gender'], correct:1,
+             expl_en:'Vibhakti is grammatical case/inflection.', expl_ml:'വിവാക്തി വ്യാകരണത്തിലെ കേസ്/മാറ്റങ്ങളെ സൂചിപ്പിക്കുന്നു.'},
+            {id:'m1-q3', text:'Good essay intro should be?', options:['Very long','Short & clear','Full of quotes'], correct:1,
+             expl_en:'Short and clear introduction is best.', expl_ml:'ലഘുവും വ്യക്തവുമായ അവതാരിക മികച്ചതാണ്.'},
+            {id:'m1-q4', text:'Sandhi affects which part?', options:['Only vowels','Consonant clusters','Both vowels and consonants'], correct:2,
+             expl_en:'Sandhi can change vowels and consonants while joining words.', expl_ml:'സന്ധി വാക്കുകൾ ചേർക്കുമ്പോൾ സ്വരങ്ങളും വ്യഞ്ജനങ്ങളും മാറ്റം വരുത്താം.'},
+            {id:'m1-q5', text:'Which helps clarity in writing?', options:['Long sentences','Short sentences','Random quotes'], correct:1,
+             expl_en:'Short sentences improve clarity.', expl_ml:'ലഘു വാക്യങ്ങൾ വ്യക്തത കൂട്ടും.'}
+          ]
+        },
+        {
+          id:'mal-2', subject:'mal', title_en:'Composition - Essay', title_ml:'രചന - പ്രബന്ധം',
+          sum_en:'Structure: intro, body, conclusion; templates & sample answers.',
+          sum_ml:'രചനയുടെ ഘടന: തുടക്കം, ശരീരം, അവസാന ભાગം; ടെംപ്ലേറ്റുകൾ.',
+          questions:[
+            {id:'m2-q1', text:'Essay conclusion should be?', options:['New topic','Summarize key points','List references'], correct:1,
+             expl_en:'Conclusion summarizes main ideas.', expl_ml:'സംക്ഷേപിച്ചു പ്രധാന കാര്യങ്ങൾ മടക്കി പറയണം.'},
+            {id:'m2-q2', text:'A good body paragraph has?', options:['Multiple unrelated ideas','One main idea + support','Only quotes'], correct:1,
+             expl_en:'One main idea with supporting sentences.', expl_ml:'ഒരു മുഖ്യ ആശയം‍യും അതിനു സഹായകമായ വാക്യങ്ങളും.'},
+            {id:'m2-q3', text:'Precise language in essays means?', options:['Ambiguous words','Clear direct words','Too many adjectives'], correct:1,
+             expl_en:'Clear direct words improve marks.', expl_ml:'വ്യക്തമായ, നേർക്കാഴ്ച വാക്കുകൾ പ്രസക്തമാണ്.'},
+            {id:'m2-q4', text:'Which is a planning step?', options:['Write immediately','Make outline','Ignore topic'], correct:1,
+             expl_en:'Making an outline helps organize thoughts.', expl_ml:'ഒരെട്ടോൽ തയ്യാറാകൽ ആശയങ്ങൾ ക്രമീകരിക്കും.'},
+            {id:'m2-q5', text:'Use of examples in essay is for?', options:['Filling words','Supporting arguments','Decorative purposes'], correct:1,
+             expl_en:'Examples support arguments and clarify points.', expl_ml:'ഉദാഹരണമാർഗ്ഗം വാദങ്ങൾ പിന്തുണയ്ക്കും.'}
+          ]
+        },
+        {
+          id:'mal-3', subject:'mal', title_en:'Literature - Poem Analysis', title_ml:'സാഹിത്യം - കവിതാ വിശ്ലേഷണം',
+          sum_en:'Reading poems: theme, tone, figures of speech, important lines.',
+          sum_ml:'കവിതകൾ വായിക്കുമ്പോൾ വിഷയം, ശൈലി, വഴക്കുകൾ, പ്രധാന വരികൾ പരിശോധിക്കുക.',
+          questions:[
+            {id:'m3-q1', text:'A poet’s tone means?', options:['The meter only','Emotion and attitude','Number of lines'], correct:1,
+             expl_en:'Tone is the poet’s attitude and emotion in the poem.', expl_ml:'കവിയുടെ ഭാവനയും നിലപാടും ടോൺ ആണ്.'},
+            {id:'m3-q2', text:'Metaphor is?', options:['Direct comparison','Using like/as','Rhyme scheme'], correct:0,
+             expl_en:'Metaphor is a direct comparison without like/as.', expl_ml:'ഉദാഹരണമായി ഉദ്ദേശം പരാമർശമില്ലാതെ നേരിട്ട് താരതമ്യം.'},
+            {id:'m3-q3', text:'Identify imagery in line: "മഴയുടെ സുശ്രാവ്"', options:['Sound image','Visual image','Taste image'], correct:1,
+             expl_en:'Visual image evokes sight.', expl_ml:'കൃതി കാഴ്ചയെ ഉണർത്തുന്ന ചിത്രം.'},
+            {id:'m3-q4', text:'Theme of a poem is?', options:['Word choice','Central idea','Font style'], correct:1,
+             expl_en:'Central idea or message is the theme.', expl_ml:'കവിതയുടെ മുഖ്യ ആശയമാണ് തീം.'},
+            {id:'m3-q5', text:'How to memorize important lines?', options:['Repeat aloud','Ignore','Change words'], correct:0,
+             expl_en:'Repeating aloud helps memory.', expl_ml:'മറക്കാതെ ആവർത്തിക്കുന്നതുതന്നെ ഓർക്കാൻ സഹായിക്കും.'}
+          ]
+        },
+
+        // English chapters
+        {
+          id:'eng-1', subject:'eng', title_en:'Comprehension', title_ml:'പഠനം - കോംപ്രഹെൻഷൻ',
+          sum_en:'Steps to solve comprehension: read, identify main idea, answer rightly.',
+          sum_ml:'പാഠം വായിക്കുക, മുഖ്യ ആശയം കണ്ടെത്തുക, പ്രസക്തമായി ഉത്തരം നൽകുക.',
+          questions:[
+            {id:'e1-q1', text:'First step in comprehension?', options:['Answer immediately','Read passage carefully','Skip passage'], correct:1,
+             expl_en:'Read passage carefully first.', expl_ml:'ആദ്യമേ ശ്രദ്ധയോടെ വായിക്കുക.'},
+            {id:'e1-q2', text:'Main idea is?', options:['Minor detail','Central point','A character name'], correct:1,
+             expl_en:'Central point is main idea.', expl_ml:'മുൻനിര ആശയമാണ് പ്രധാനമായത്.'},
+            {id:'e1-q3', text:'Inference means?', options:['Direct quote','Logical conclusion','Rhyme'], correct:1,
+             expl_en:'Inference is concluding logically from text.', expl_ml:'വാചകത്തിൽ നിന്നുള്ള യുക്തിചിന്തനമാണ് ഇൻഫറൻസ്.'}
+          ]
+        },
+        {
+          id:'eng-2', subject:'eng', title_en:'Grammar - Tenses', title_ml:'വ്യാകരണം - ടെൻസുകൾ',
+          sum_en:'Simple present, past, future and their uses with examples.',
+          sum_ml:'സാധാരണ നിലവിലെ, 과거, ഭാവി ടെൻസുകളുടെ ഉപയോഗം ഉദാഹരണങ്ങളിലൂടെ.',
+          questions:[
+            {id:'e2-q1', text:'Simple past form of "go"?', options:['goed','went','gone'], correct:1,
+             expl_en:'Went is past form.', expl_ml:'വെന്റ് ആണ് past ഫോർം.'},
+            {id:'e2-q2', text:'Future tense marker?', options:['-ed','will','-ing'], correct:1,
+             expl_en:'"will" marks future in simple usage.', expl_ml:'ഭാവിയെ സൂചിപ്പിക്കാൻ will ഉപയോഗിക്കുന്നു.'}
+          ]
+        },
+        {
+          id:'eng-3', subject:'eng', title_en:'Essay Writing', title_ml:'പ്രബന്ധ രചന',
+          sum_en:'Structure and model essays: introductions, paragraphs, conclusions.',
+          sum_ml:'രചനയുടെ ഘടനയും മാതൃകയും: തുടങ്ങൽ, പാരഗ്രാഫുകൾ, സമാപനം.',
+          questions:[
+            {id:'e3-q1', text:'Thesis statement located in?', options:['Conclusion','Introduction','Footnote'], correct:1,
+             expl_en:'Usually in the introduction.', expl_ml:'സാധാരണയായി തുടക്കത്തിലാണ് തിരയിക് പരിചയപ്പെടുത്തൽ.'}
+          ]
+        },
+
+        // History
+        {
+          id:'his-1', subject:'hist', title_en:'Ancient India', title_ml:'പ്രാചീന ഇന്ത്യ',
+          sum_en:'Harappa, Vedic age, major features of ancient Indian society.',
+          sum_ml:'ഹരപ്പ, വേദ കാലം, പുരാതന സമൂഹത്തിന്റെ പ്രധാന സവിശേഷതകൾ.',
+          questions:[
+            {id:'h1-q1', text:'Harappa civilization located near?', options:['Indus river','Ganges','Brahmaputra'], correct:0,
+             expl_en:'Indus river valley.', expl_ml:'ഇൻഡസ് നദീപ്രദേശമായിരുന്നു.'},
+            {id:'h1-q2', text:'Vedic texts are called?', options:['Vedas','Puranas','Upanishads'], correct:0,
+             expl_en:'Vedas are earliest scriptures.', expl_ml:'വേദങ്ങൾ ആദ്യകാല ഗ്രന്ഥങ്ങളാണ്.'}
+          ]
+        },
+        {
+          id:'his-2', subject:'hist', title_en:'Medieval India', title_ml:'മധ്യകാലീന ഇന്ത്യ',
+          sum_en:'Delhi Sultanate, regional kingdoms, cultural synthesis.',
+          sum_ml:'ഡെൽഹി സൽത്തനറ്റ്, പ്രദേശിക രാജ്യങ്ങൾ, സാംസ്‌കാരിക സംയോജനങ്ങൾ.',
+          questions:[
+            {id:'h2-q1', text:'Who founded Delhi Sultanate?', options:['Qutb-ud-din Aibak','Akbar','Chandragupta'], correct:0,
+             expl_en:'Qutb-ud-din Aibak started Mamluk dynasty.', expl_ml:'കുതബ് ഉദ്‌ദിൻ ഐബക് ആണ് തുടക്കം.'}
+          ]
+        },
+        {
+          id:'his-3', subject:'hist', title_en:'Modern India', title_ml:'ആധുനിക ഇന്ത്യ',
+          sum_en:'Colonial rule, freedom movement, major leaders.',
+          sum_ml:'വസന്തകാലത്ത് ചേക്കേറുന്ന ഭരണം, സ്വാതന്ത്യ്ര സമരം, നേതാക്കൾ.',
+          questions:[
+            {id:'h3-q1', text:'Who led Dandi March?', options:['Gandhi','Bose','Nehru'], correct:0,
+             expl_en:'Gandhi led Salt Satyagraha (Dandi March).', expl_ml:'ഗാന്ധിജിയാണ് ദാണ്ടി മാർച്ച് നയിച്ചത്.'}
+          ]
+        },
+
+        // Politics
+        {
+          id:'pol-1', subject:'pol', title_en:'Constitution Basics', title_ml:'സ്വാതന്ത്ര്യഘടന - അടിസ്ഥാനങ്ങൾ',
+          sum_en:'Fundamental rights, duties, structure of government.',
+          sum_ml:'ആധാരഭാവസ്ഥാനങ്ങൾ, കടമകൾ, ഭരണഘടനയുടെ ഘടന.',
+          questions:[
+            {id:'p1-q1', text:'Who is head of state in India?', options:['Prime Minister','President','Chief Justice'], correct:1,
+             expl_en:'President is head of state.', expl_ml:'ദേശതലത്തിൽ പ്രസിഡന്റ് ആണ് തലവൻ.'}
+          ]
+        },
+        {
+          id:'pol-2', subject:'pol', title_en:'Democracy & Governance', title_ml:'പ്രജനത & ഭരണനിർവ്വഹണം',
+          sum_en:'Election process, role of legislature and executive.',
+          sum_ml:'തെരഞ്ഞെടുപ്പ് പ്രക്രിയ, നിയമസഭയും പ്രവർത്തകരും ചെയ്യുന്നതെന്ത്.',
+          questions:[
+            {id:'p2-q1', text:'Who passes laws?', options:['Judiciary','Legislature','Executive'], correct:1,
+             expl_en:'Legislature passes laws.', expl_ml:'നിയമസഭകളാണ് നിയമങ്ങൾ പാസാക്കുന്നത്.'}
+          ]
+        },
+        {
+          id:'pol-3', subject:'pol', title_en:'Public Policy', title_ml:'പൊതു നയം',
+          sum_en:'Policy-making steps, welfare schemes examples.',
+          sum_ml:'നയനിർമ്മാണ ഘടകങ്ങൾ, ക്ഷേമ പദ്ധതികളുടെ ഉദാഹരണങ്ങൾ.',
+          questions:[
+            {id:'p3-q1', text:'Policy evaluation checks?', options:['Implementation','Opinion only','No action'], correct:0,
+             expl_en:'Evaluation checks implementation & outcomes.', expl_ml:'പ്രവർത്തനം, ഫലം എന്നിവ പരിശോധിക്കുന്നത് ആണ്.'}
+          ]
+        },
+
+        // Sociology
+        {
+          id:'soc-1', subject:'soc', title_en:'Society & Culture', title_ml:'സമൂഹം & സംസ്കാരം',
+          sum_en:'Elements of culture, norms, values, socialisation.',
+          sum_ml:'സംസ്‌കാര ഘടകങ്ങൾ, നോർമുകൾ, മൂല്യങ്ങൾ, സോഷ്യലൈസേഷൻ.',
+          questions:[
+            {id:'s1-q1', text:'Socialisation means?', options:['Solo living','Learning social norms','Eating together'], correct:1,
+             expl_en:'Learning social norms & behavior.', expl_ml:'സാമൂഹിക നോർമുകൾ പഠിക്കുകയാണ് സോഷ്യലൈസേഷൻ.'}
+          ]
+        },
+        {
+          id:'soc-2', subject:'soc', title_en:'Social Institutions', title_ml:'സാമൂഹിക институтുകൾ',
+          sum_en:'Family, education, religion as institutions.',
+          sum_ml:'കുടുംബം, വിദ്യാഭ്യാസം, മതം തുടങ്ങിയ സ്ഥാപനങ്ങൾ.',
+          questions:[
+            {id:'s2-q1', text:'Which is a social institution?', options:['River','Family','Mountain'], correct:1,
+             expl_en:'Family is a social institution.', expl_ml:'കുടുംബം സാമൂഹിക സ്ഥാപനമാണ്.'}
+          ]
+        },
+        {
+          id:'soc-3', subject:'soc', title_en:'Social Change', title_ml:'സാമൂഹിക മാറ്റം',
+          sum_en:'Causes of social change: technology, movements, policy.',
+          sum_ml:'സാങ്കേതികവിദ്യ, ചലനങ്ങൾ, നയങ്ങൾ എന്നിങ്ങനെ കാരണങ്ങൾ.',
+          questions:[
+            {id:'s3-q1', text:'A driver of social change is?', options:['Technology','Immutable law','Static culture'], correct:0,
+             expl_en:'Technology often drives social change.', expl_ml:'സാങ്കേതികവിദ്യ സാമൂഹിക മാറ്റത്തിന് പ്രേരകമാണ്.'}
+          ]
+        }
+      ]
+    };
+
+    /***************
+     * Persistence: localStorage for progress, doubts, plan
+     ***************/
+    function loadState(){ try { return JSON.parse(localStorage.getItem(APP_KEY)) || {}; } catch(e){ return {}; } }
+    function saveState(state){ localStorage.setItem(APP_KEY, JSON.stringify(state)); }
+    let STATE = loadState();
+    if(!STATE.progress) STATE.progress = {}; // track correct counts per chapter {chapterId:{correct:0,total:0}}
+    if(!STATE.plan) STATE.plan = []; // array of {id,task,done}
+    if(!STATE.doubts) STATE.doubts = []; // array of {id,name,text,ts}
+    saveState(STATE);
+
+    /***************
+     * UI Rendering
+     ***************/
+    const subjectsGrid = document.getElementById('subjectsGrid');
+    const subjectSelect = document.getElementById('subjectSelect');
+    const chaptersList = document.getElementById('chaptersList');
+    const planList = document.getElementById('planList');
+    const progressBlocks = document.getElementById('progressBlocks');
+    const doubtList = document.getElementById('doubtList');
+
+    // Language handling (UI language only)
+    let uiLang = 'en';
+    document.querySelectorAll('input[name="lang"]').forEach(r=>{
+      r.addEventListener('change', ()=>{ uiLang = document.querySelector('input[name="lang"]:checked').value; renderAll(); });
+    });
+
+    function t(en, ml){ return uiLang==='en' ? en : (ml || en); }
+
+    // Render subjects grid & subject select
+    function renderSubjects(){
+      subjectsGrid.innerHTML = '';
+      subjectSelect.innerHTML = `<option value="">-- ${t('Select Subject','വിഷയം തിരഞ്ഞെടുക്കുക')} --</option>`;
+      DATA.subjects.forEach(s=>{
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `<div class="subject-title">${uiLang==='en' ? s.name_en : s.name_ml}</div>
+                          <div class="small">${t('Click to study chapters','ചാപ്റ്ററുകൾ പഠിക്കാൻ ക്ലിക്ക് ചെയ്യുക')}</div>
+                          <div style="margin-top:8px"><button class="btn" data-sub="${s.id}">${t('Open','തുറക്കുക')}</button></div>`;
+        subjectsGrid.appendChild(card);
+        // select opt
+        const opt = document.createElement('option');
+        opt.value = s.id; opt.textContent = uiLang==='en' ? s.name_en : s.name_ml;
+        subjectSelect.appendChild(opt);
+      });
+
+      // attach open handlers
+      subjectsGrid.querySelectorAll('button[data-sub]').forEach(b=>{
+        b.addEventListener('click', ()=>{ showStudyFor(b.dataset.sub); activateTab('study'); });
+      });
+    }
+
+    // Show study for subject id
+    function showStudyFor(subId){
+      subjectSelect.value = subId;
+      loadChapters();
+    }
+
+    // Load chapters filtered by subject + search
+    function loadChapters(){
+      const subId = subjectSelect.value;
+      const q = document.getElementById('searchChapter').value.trim().toLowerCase();
+      const list = DATA.chapters.filter(c => (!subId || c.subject===subId) && (!q || c.title_en.toLowerCase().includes(q) || (c.title_ml && c.title_ml.toLowerCase().includes(q))));
+      chaptersList.innerHTML = '';
+      if(list.length===0){ chaptersList.innerHTML = `<div class="small-muted">${t('No chapters found','ചാപ്റ്ററുകൾ കണ്ടെത്തിയില്ല')}</div>`; return; }
+      list.forEach(ch=>{
+        const div = document.createElement('div'); div.className='chapter';
+        const subj = DATA.subjects.find(s=>s.id===ch.subject);
+        div.innerHTML = `<div class="meta"><div>
+                          <div style="font-weight:700">${uiLang==='en'?ch.title_en:ch.title_ml}</div>
+                          <div class="small">${subj ? (uiLang==='en'?subj.name_en:subj.name_ml) : ''}</div>
+                         </div>
+                         <div><button class="btn" data-open="${ch.id}">${t('Open','തുറക്കുക')}</button></div></div>
+                         <div class="summary">${uiLang==='en'?ch.sum_en:ch.sum_ml}</div>`;
+        chaptersList.appendChild(div);
+      });
+      // open handlers
+      chaptersList.querySelectorAll('button[data-open]').forEach(b=>{
+        b.addEventListener('click', ()=> openChapter(b.dataset.open));
+      });
+    }
+
+    // Open chapter detail and quiz modal (simple inline)
+    function openChapter(chId){
+      const ch = DATA.chapters.find(x=>x.id===chId);
+      if(!ch) return alert(t('Chapter not found','ചാപ്റ്റർ കണ്ടെത്താനായില്ല'));
+      // Show details
+      chaptersList.innerHTML = '';
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+        <div><h3 style="margin:0">${uiLang==='en'?ch.title_en:ch.title_ml}</h3><div class="small">${uiLang==='en'?ch.sum_en:ch.sum_ml}</div></div>
+        <div>
+          <button class="btn" id="backBtn">${t('Back','മടങ്ങുക')}</button>
+        </div>
+      </div>`;
+      // content area: English + Malayalam toggle for explanations inside quiz
+      const quizArea = document.createElement('div'); quizArea.style.marginTop='12px';
+      wrapper.appendChild(quizArea);
+      chaptersList.appendChild(wrapper);
+      document.getElementById('backBtn').addEventListener('click', ()=> loadChapters());
+
+      // Render quiz questions
+      renderQuiz(ch, quizArea);
+    }
+
+    // Render quiz inside container
+    function renderQuiz(ch, container){
+      container.innerHTML = `<h4>${t('Practice Quiz','പ്രാക്ടീസ് ക്വിസ്')}</h4>`;
+      // questions list
+      ch.questions.forEach((q, idx)=>{
+        const qdiv = document.createElement('div'); qdiv.className='quiz-question';
+        qdiv.innerHTML = `<div style="font-weight:700">${idx+1}. ${q.text}</div>
+                          <div id="opts-${q.id}" style="margin-top:8px"></div>
+                          <div id="ex-${q.id}" style="display:none;margin-top:10px"></div>`;
+        container.appendChild(qdiv);
+        const optsDiv = qdiv.querySelector(`#opts-${q.id}`);
+        q.options.forEach((opt, i)=>{
+          const optBtn = document.createElement('div'); optBtn.className='option'; optBtn.textContent = opt;
+          optBtn.addEventListener('click', ()=>{
+            // mark selection
+            q._selected = i;
+            // style
+            optsDiv.querySelectorAll('.option').forEach(el=>el.classList.remove('selected'));
+            optBtn.classList.add('selected');
+          });
+          optsDiv.appendChild(optBtn);
+        });
+      });
+
+      // submit button
+      const submitBtn = document.createElement('button'); submitBtn.className='btn'; submitBtn.textContent = t('Submit Quiz','ക്വിസ് സമര്‍പ്പിക്കുക');
+      container.appendChild(submitBtn);
+      const outDiv = document.createElement('div'); container.appendChild(outDiv);
+
+      submitBtn.addEventListener('click', ()=>{
+        // scoring
+        let correct=0; let total = ch.questions.length;
+        ch.questions.forEach(q=>{
+          if(typeof q._selected === 'number' && q._selected === q.correct) correct++;
+          // show explanation area
+          const exDiv = document.getElementById(`ex-${q.id}`);
+          exDiv.style.display='block';
+          exDiv.innerHTML = `<div style="background:#071b2a;padding:10px;border-radius:8px">
+              <div class="small"><strong>${t('Correct answer:','ശരി ഉത്തരമുണ്ട്:')}</strong> ${q.options[q.correct]}</div>
+              <div style="margin-top:6px"><em>EN:</em> ${q.expl_en}</div>
+              <div style="margin-top:6px"><em>ML:</em> ${q.expl_ml}</div>
+            </div>`;
+        });
+
+        // update STATE progress
+        if(!STATE.progress[ch.id]) STATE.progress[ch.id] = {correct:0,total:0};
+        STATE.progress[ch.id].correct += correct;
+        STATE.progress[ch.id].total += total;
+        saveState(STATE);
+        renderProgressBlocks();
+
+        // show result
+        const percent = Math.round((correct/total)*100);
+        outDiv.innerHTML = `<div class="result"><strong>${t('Score:','സ്കോർ:')}</strong> ${correct} / ${total} (${percent}%)
+          <div style="margin-top:8px">${percent>=70? '<span style="color:lightgreen">PASS ✅</span>':'<span style="color:orange">Keep trying — revise Malayalam explanations.</span>'}</div>
+        </div>`;
+      });
+    }
+
+    // Study Plan functions
+    function renderPlan(){
+      planList.innerHTML = '';
+      if(STATE.plan.length===0){
+        planList.innerHTML = `<div class="small-muted">${t('No tasks. Add your first study task.','ടാസ്ക്ക് ഒന്നുമില്ല. ആദ്യത്തെ ടാസ്ക് ചേർക്കുക.')}</div>`;
+      } else {
+        STATE.plan.forEach((p)=>{
+          const div = document.createElement('div'); div.className='card'; div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center';
+          div.innerHTML = `<div>
+            <div style="font-weight:700">${p.task}</div>
+            <div class="small">${new Date(p.ts).toLocaleString()}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="font-size:13px"><input type="checkbox" ${p.done? 'checked':''} data-id="${p.id}" class="plan-check"> ${t('Done','ചെയ്തിരിക്കുന്നു')}</label>
+            <button class="btn ghost" data-del="${p.id}">${t('Delete','താങ്ക'ה')}</button>
+          </div>`;
+          planList.appendChild(div);
+        });
+        // handlers
+        planList.querySelectorAll('.plan-check').forEach(cb=>{
+          cb.addEventListener('change', e=>{
+            const id = e.target.dataset.id;
+            const it = STATE.plan.find(x=>x.id===id); if(it) it.done = e.target.checked; saveState(STATE); renderPlan();
+          });
+        });
+        planList.querySelectorAll('button[data-del]').forEach(b=>{
+          b.addEventListener('click', ()=>{ STATE.plan = STATE.plan.filter(x=>x.id!==b.dataset.del); saveState(STATE); renderPlan(); });
+        });
+      }
+    }
+
+    document.getElementById('addPlan').addEventListener('click', ()=>{
+      const txt = document.getElementById('planTask').value.trim();
+      if(!txt) return alert(t('Enter a task','ടാസ്ക് ടൈപ്പ് ചെയ്യുക'));
+      STATE.plan.unshift({id:'p-'+Date.now(), task:txt, done:false, ts:Date.now()});
+      saveState(STATE); document.getElementById('planTask').value=''; renderPlan();
+    });
+
+    // Progress rendering
+    function renderProgressBlocks(){
+      progressBlocks.innerHTML = '';
+      DATA.subjects.forEach(s=>{
+        // compute subject accuracy by chapters
+        const chs = DATA.chapters.filter(c=>c.subject===s.id);
+        let correct=0, total=0;
+        chs.forEach(c=>{
+          const p = STATE.progress[c.id];
+          if(p){ correct += p.correct; total += p.total; }
+        });
+        const percent = total>0? Math.round((correct/total)*100):0;
+        const block = document.createElement('div'); block.className='card'; block.style.marginBottom='10px';
+        block.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">${uiLang==='en'?s.name_en:s.name_ml}</div>
+          <div class="small">${percent}%</div>
+        </div>
+        <div style="margin-top:8px" class="progressbar"><i style="width:${percent}%"></i></div>`;
+        progressBlocks.appendChild(block);
+      });
+      // overall
+      // also show weak chapters (<60%)
+      const weakList = DATA.chapters.filter(c=>{
+        const p=STATE.progress[c.id]; if(!p || p.total===0) return false; const pc = Math.round((p.correct/p.total)*100); return pc<60;
+      });
+      if(weakList.length>0){
+        const wcard = document.createElement('div'); wcard.className='card'; wcard.innerHTML = `<div style="font-weight:700">${t('Weak Chapters (review)','ബലഹീന ചാപ്റ്ററുകൾ (പുനഃപരിശോധിക്കുക)')}</div>`;
+        weakList.forEach(w=>{
+          const subj = DATA.subjects.find(s=>s.id===w.subject);
+          const p=STATE.progress[w.id]||{correct:0,total:0}; const pc = p.total? Math.round((p.correct/p.total)*100):0;
+          const row = document.createElement('div'); row.style.marginTop='8px'; row.innerHTML = `<div style="display:flex;justify-content:space-between"><div>${uiLang==='en'?w.title_en:w.title_ml} <span class="small">(${subj? (uiLang==='en'?subj.name_en:subj.name_ml):''})</span></div><div class="small">${pc}%</div></div>`;
+          wcard.appendChild(row);
+        });
+        progressBlocks.appendChild(wcard);
+      }
+    }
+
+    // Doubt functions
+    document.getElementById('submitDoubt').addEventListener('click', ()=>{
+      const name = document.getElementById('doubtName').value.trim();
+      const text = document.getElementById('doubtText').value.trim();
+      if(!text) return alert(t('Type your doubt','നിന്റെ സംശയം ടൈപ്പ് ചെയ്യുക'));
+      STATE.doubts.unshift({id:'d-'+Date.now(), name:name, text:text, ts:Date.now()});
+      saveState(STATE); document.getElementById('doubtName').value=''; document.getElementById('doubtText').value=''; renderDoubts();
+      alert(t('Saved locally. You can review later.','ലോകൽ-ലെവ് സേവ് ചെയ്തു. പിന്നീട് കാണാം.'));
+    });
+
+    function renderDoubts(){
+      doubtList.innerHTML = '';
+      if(STATE.doubts.length===0) { doubtList.innerHTML = `<div class="small-muted">${t('No doubts yet','ഇതുവരെ സംശയങ്ങളില്ല')}</div>`; return; }
+      STATE.doubts.forEach(d=>{
+        const div = document.createElement('div'); div.className='card'; div.style.marginBottom='8px';
+        div.innerHTML = `<div style="display:flex;justify-content:space-between"><div style="font-weight:700">${d.name||t('Anonymous','അജ്ഞാതന്‍')}</div><div class="small">${new Date(d.ts).toLocaleString()}</div></div>
+          <div style="margin-top:6px">${d.text}</div>
+          <div style="margin-top:8px"><button class="btn ghost" data-del="${d.id}">${t('Delete',' ഇല്ലാക്കിയേം')}</button></div>`;
+        doubtList.appendChild(div);
+      });
+      doubtList.querySelectorAll('button[data-del]').forEach(b=>{
+        b.addEventListener('click', ()=>{ STATE.doubts = STATE.doubts.filter(x=>x.id!==b.dataset.del); saveState(STATE); renderDoubts(); });
+      });
+    }
+
+    // Export / Reset
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const dataStr = JSON.stringify(STATE, null, 2);
+      const blob = new Blob([dataStr], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'h2_2025_data_export.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      if(confirm(t('Reset all progress and data?','എല്ലാ പ്രോഗ്രസും ഡാറ്റയും റീസെറ്റ് ചെയ്യണോ?'))){
+        localStorage.removeItem(APP_KEY); STATE = loadState(); STATE.progress={}; STATE.plan=[]; STATE.doubts=[]; saveState(STATE); renderAll();
+      }
+    });
+
+    // Tabs handling
+    document.querySelectorAll('.tab').forEach(tb=>{
+      tb.addEventListener('click', ()=> {
+        document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+        tb.classList.add('active'); activateTab(tb.dataset.tab);
+      });
+    });
+    function activateTab(name){
+      document.getElementById('homeView').style.display = name==='home'? 'block':'none';
+      document.getElementById('studyView').style.display = name==='study'? 'block':'none';
+      document.getElementById('planView').style.display = name==='plan'? 'block':'none';
+      document.getElementById('progressView').style.display = name==='progress'? 'block':'none';
+      document.getElementById('doubtView').style.display = name==='doubt'? 'block':'none';
+      // render dynamic
+      if(name==='home'){ renderSubjects(); }
+      if(name==='study'){ renderSubjects(); loadChapters(); }
+      if(name==='plan'){ renderPlan(); }
+      if(name==='progress'){ renderProgressBlocks(); }
+      if(name==='doubt'){ renderDoubts(); }
+    }
+
+    // initial render
+    renderAll();
+    function renderAll(){ renderSubjects(); renderPlan(); renderProgressBlocks(); renderDoubts(); }
+
+    // loadChapters button
+    document.getElementById('loadChapters').addEventListener('click', ()=> { activateTab('study'); loadChapters(); });
+
+    // Export initial sample plan & progress if empty: create sample plan
+    if(STATE.plan.length===0){
+      STATE.plan = [
+        {id:'p-'+Date.now(), task:'Malayalam - Ezhuthakam (Read summary + quiz)', done:false, ts:Date.now()},
+        {id:'p-'+(Date.now()+1), task:'English - Comprehension (Read + practice)', done:false, ts:Date.now()+1},
+        {id:'p-'+(Date.now()+2), task:'History - Ancient India (Timeline overview)', done:false, ts:Date.now()+2},
+      ];
+      saveState(STATE);
+      renderPlan();
+    }
+
+    // initial expose
+    window.h2data = {DATA, STATE, saveState, renderAll}; // for debugging / manual edits in console
+  </script src="index.js"></script>
+</body>
+</html>
